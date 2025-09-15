@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeSight Navigator Tool</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <style>
+        :root {
+            --certainty-color: #327FEF;
+            --savings-color: #7F33B2;
+            --emergency-color: #FE8203;
+            --balance-color: #3ADAC8;
+            --bg-color: #f8f9fa;
+            --text-color: #343a40;
+            --border-color: #dee2e6;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --button-text-color: #ffffff;
+        }
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+        .pension-tool-container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px var(--shadow-color);
+            max-width: 1000px;
+            width: 100%;
+            margin: 20px auto;
+        }
+        .pension-tool-header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+        }
+        .pension-tool-header h2 {
+            font-size: 1.6rem;
+        }
+        .pension-tool-header p {
+            font-size: 0.95rem;
+            color: #555;
+        }
+        .pension-tool-main {
+            display: flex;
+            gap: 25px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+        .pension-tool-controls {
+            flex: 1 1 450px;
+        }
+        .pension-tool-visuals {
+            flex: 1 1 350px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding-top: 20px;
+        }
+        .pot-control {
+            margin-bottom: 20px;
+        }
+        .pot-control label {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        .pot-title-container {
+            flex-grow: 1;
+        }
+        .pot-title {
+            font-weight: bold;
+            font-size: 1.05rem;
+            display: flex;
+            align-items: center;
+        }
+        .pot-subtitle {
+            font-size: 0.8rem;
+            font-weight: normal;
+            color: #6c757d;
+            margin: 4px 0 0 0;
+            line-height: 1.4;
+            padding-right: 15px;
+        }
+        .pot-control .value-output {
+            font-weight: bold;
+            font-size: 1em;
+            padding: 4px 10px;
+            border-radius: 15px;
+            background-color: #e9ecef;
+            min-width: 120px; /* Increased width */
+            text-align: center;
+            margin-top: 4px;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .slider {
+            width: 100%;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 12px;
+            border-radius: 6px;
+            background: #e9ecef;
+            outline: none;
+            opacity: 0.9;
+            transition: opacity .2s;
+        }
+        .slider:hover {
+            opacity: 1;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        #certaintySlider::-webkit-slider-thumb { background: var(--certainty-color); }
+        #savingsSlider::-webkit-slider-thumb { background: var(--savings-color); }
+        #emergencySlider::-webkit-slider-thumb { background: var(--emergency-color); }
+        
+        .inc-dec-buttons button {
+            width: 32px;
+            height: 32px;
+            border: 1px solid var(--border-color);
+            background-color: white;
+            font-size: 1.4em;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background-color 0.2s, transform 0.1s;
+            line-height: 1;
+        }
+        .inc-dec-buttons button:hover {
+            background-color: #f1f3f5;
+        }
+        .inc-dec-buttons button:active {
+            transform: scale(0.95);
+        }
+        .settings-logic {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+        .settings-logic h4 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        .settings-logic .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            gap: 10px;
+        }
+        .settings-logic .setting-row label {
+            font-weight: normal !important;
+            margin-bottom: 0;
+            margin-left: 0;
+            font-size: 0.9rem;
+        }
+        .settings-logic .setting-row input[type="number"],
+        .settings-logic .setting-row input[type="text"] {
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            width: 120px;
+        }
+        .age-control-buttons {
+            display: flex;
+            align-items: center;
+        }
+        .age-control-buttons button {
+            width: 32px;
+            height: 38px;
+            font-size: 1.2em;
+        }
+        .age-control-buttons input {
+            text-align: center;
+            border-left: none;
+            border-right: none;
+            border-radius: 0;
+            width: 50px;
+        }
+        .age-control-buttons button:first-child {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+        .age-control-buttons button:last-child {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+        #specificPotSelect {
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            margin-left: 8px;
+            background-color: white;
+        }
+        
+        #pensionPieChartContainer {
+            position: relative;
+            width: 100%;
+            max-width: 350px;
+        }
+        #pensionPieChart {
+            max-width: 100%;
+            height: auto;
+        }
+        .pension-tool-footer {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            width: 100%;
+        }
+        .pension-tool-footer button {
+            padding: 12px 24px;
+            font-size: 1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 0 5px;
+            transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+            color: var(--button-text-color);
+        }
+        .pension-tool-footer button:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .pension-tool-footer button:active {
+            transform: scale(0.98);
+        }
+        #resetBtn {
+            background-color: #F6507F;
+        }
+        #detailsBtn {
+            background-color: #7F7F7F;
+        }
+        #balanceBtn {
+            background-color: var(--balance-color);
+        }
+        .dot {
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+            vertical-align: middle;
+            flex-shrink: 0;
+        }
+        .disclaimer-box {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            color: #6c757d;
+            line-height: 1.5;
+            text-align: justify;
+        }
+
+        /* Modal for alerts */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            max-width: 400px;
+        }
+        .modal-content p {
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+        .modal-content button {
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            background-color: var(--certainty-color);
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="pension-tool-container">
+    <div class="pension-tool-header">
+        <h2>LifeSight Navigator Tool</h2>
+        <p>Use the sliders to see how different allocations could affect your retirement income</p>
+    </div>
+
+    <div class="pension-tool-main">
+        <div class="pension-tool-controls">
+            <!-- Savings Pot -->
+            <div class="pot-control">
+                <label for="savingsSlider">
+                    <div class="pot-title-container">
+                        <span class="pot-title" id="savingsTitle"><span class="dot" style="background-color: var(--savings-color);"></span>Phase 1: The Flex</span>
+                        <p class="pot-subtitle" id="savingsSubtitle">a flexible pot you can access up to age 80</p>
+                    </div>
+                    <span id="savingsValue" class="value-output">£6,667 p.a.</span>
+                </label>
+                <div class="slider-container">
+                    <div class="inc-dec-buttons">
+                        <button onclick="adjustPot('savings', -1)">-</button>
+                    </div>
+                    <input type="range" min="0" max="100" value="40" class="slider" id="savingsSlider">
+                    <div class="inc-dec-buttons">
+                        <button onclick="adjustPot('savings', 1)">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Certainty Pot -->
+            <div class="pot-control">
+                <label for="certaintySlider">
+                    <div class="pot-title-container">
+                        <span class="pot-title" id="certaintyTitle"><span class="dot" style="background-color: var(--certainty-color);"></span>Phase 2: The Fix</span>
+                        <p class="pot-subtitle" id="certaintySubtitle">to give you a guaranteed monthly income from age 80 for the rest of your life</p>
+                    </div>
+                    <span id="certaintyValue" class="value-output">£5,000 p.a.</span>
+                </label>
+                <div class="slider-container">
+                    <div class="inc-dec-buttons">
+                        <button onclick="adjustPot('certainty', -1)">-</button>
+                    </div>
+                    <input type="range" min="0" max="100" value="40" class="slider" id="certaintySlider">
+                    <div class="inc-dec-buttons">
+                        <button onclick="adjustPot('certainty', 1)">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Emergency Pot -->
+            <div class="pot-control">
+                <label for="emergencySlider">
+                     <div class="pot-title-container">
+                        <span class="pot-title"><span class="dot" style="background-color: var(--emergency-color);"></span>The Float</span>
+                        <p class="pot-subtitle">a separate pot to go towards unexpected costs</p>
+                    </div>
+                    <span id="emergencyValue" class="value-output">£10,000</span>
+                </label>
+                <div class="slider-container">
+                    <div class="inc-dec-buttons">
+                        <button onclick="adjustPot('emergency', -1)">-</button>
+                    </div>
+                    <input type="range" min="0" max="50000" step="500" value="10000" class="slider" id="emergencySlider">
+                    <div class="inc-dec-buttons">
+                        <button onclick="adjustPot('emergency', 1)">+</button>
+                    </div>
+                </div>
+            </div>
+
+             <!-- Settings -->
+            <div class="settings-logic">
+                <h4>Your Details & Settings</h4>
+                <div class="setting-row">
+                    <label for="balanceInput">Current LifeSight Balance (£)</label>
+                    <input type="number" id="balanceInput" step="1000">
+                </div>
+                 <div class="setting-row">
+                    <label for="currentAgeInput">Current Age</label>
+                    <input type="number" id="currentAgeInput" min="18" max="90">
+                </div>
+                <div class="setting-row">
+                    <label for="postcodeInput">Postcode</label>
+                    <input type="text" id="postcodeInput">
+                </div>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <div class="setting-row">
+                    <label for="retirementAgeInput" id="retirementAgeLabel">Phase 2 starts at age:</label>
+                    <div class="age-control-buttons inc-dec-buttons">
+                        <button id="ageDecrementBtn">-</button>
+                        <input type="number" id="retirementAgeInput" min="65" max="90">
+                        <button id="ageIncrementBtn">+</button>
+                    </div>
+                </div>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <div>
+                    <label for="even">When I move a slider, distribute change evenly</label>
+                    <input type="radio" id="even" name="adjustmentMode" value="even" checked>
+                </div>
+                <div>
+                    <label for="specific">When I move a slider, take from a specific pot:</label>
+                    <input type="radio" id="specific" name="adjustmentMode" value="specific">
+                    <select id="specificPotSelect" disabled></select>
+                </div>
+            </div>
+        </div>
+
+        <div class="pension-tool-visuals">
+            <div id="pensionPieChartContainer">
+                <canvas id="pensionPieChart"></canvas>
+            </div>
+             <div class="pension-tool-footer">
+                <button id="balanceBtn">Balance Incomes</button>
+                <button id="resetBtn">Reset to Default</button>
+                <button id="detailsBtn">View More Details</button>
+            </div>
+            <div class="disclaimer-box">
+                The income illustrations above are projections based on current market conditions. The actual annual amounts will depend on various factors such as investment performance between now and age <span class="dynamic-age">80</span>, and the cost of buying the later life income when you reach age <span class="dynamic-age">80</span>.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Structure -->
+<div id="alertModal" class="modal-overlay">
+    <div class="modal-content">
+        <p id="modalText"></p>
+        <button id="modalCloseBtn">Close</button>
+    </div>
+</div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // --- Configuration & Assumptions ---
+    const config = {
+        annuityRate: 0.05,
+        defaults: {
+            retirementAge: 80,
+            currentAge: 65,
+            totalFund: 250000,
+            postcode: 'M15 4RP'
+        }
+    };
+
+    // --- State Management ---
+    let state = {};
+    let isProgrammaticChange = false;
+
+    // --- DOM Element References ---
+    const elements = {
+        sliders: {
+            savings: document.getElementById('savingsSlider'),
+            certainty: document.getElementById('certaintySlider'),
+            emergency: document.getElementById('emergencySlider')
+        },
+        values: {
+            savings: document.getElementById('savingsValue'),
+            certainty: document.getElementById('certaintyValue'),
+            emergency: document.getElementById('emergencyValue')
+        },
+        subtitles: {
+            savings: document.getElementById('savingsSubtitle'),
+            certainty: document.getElementById('certaintySubtitle')
+        },
+        inputs: {
+            retirementAge: document.getElementById('retirementAgeInput'),
+            currentAge: document.getElementById('currentAgeInput'),
+            totalFund: document.getElementById('balanceInput'),
+            postcode: document.getElementById('postcodeInput')
+        },
+        ageButtons: {
+            increment: document.getElementById('ageIncrementBtn'),
+            decrement: document.getElementById('ageDecrementBtn')
+        },
+        dynamicAgeSpans: document.querySelectorAll('.dynamic-age'),
+        logic: {
+            mode: document.querySelectorAll('input[name="adjustmentMode"]'),
+            specificSelect: document.getElementById('specificPotSelect')
+        },
+        resetBtn: document.getElementById('resetBtn'),
+        detailsBtn: document.getElementById('detailsBtn'),
+        balanceBtn: document.getElementById('balanceBtn'),
+        modal: {
+            overlay: document.getElementById('alertModal'),
+            text: document.getElementById('modalText'),
+            closeBtn: document.getElementById('modalCloseBtn')
+        }
+    };
+
+    // --- Custom Alert Function ---
+    function showModal(message) {
+        elements.modal.text.textContent = message;
+        elements.modal.overlay.style.display = 'flex';
+    }
+    
+    // --- Register the Datalabels Plugin ---
+    Chart.register(ChartDataLabels);
+
+    // --- Chart.js Setup ---
+    const ctx = document.getElementById('pensionPieChart').getContext('2d');
+    const potDisplayNames = {
+        savings: 'Phase 1: The Flex',
+        certainty: 'Phase 2: The Fix',
+        emergency: 'The Float'
+    };
+    const pensionPieChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.values(potDisplayNames),
+            datasets: [{
+                data: [0, 0, 0],
+                backgroundColor: ['rgba(127, 51, 178, 0.9)', 'rgba(50, 127, 239, 0.9)', 'rgba(254, 130, 3, 0.9)'],
+                borderColor: '#ffffff',
+                borderWidth: 4,
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            cutout: '30%',
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: false },
+                datalabels: {
+                    color: '#ffffff',
+                    textAlign: 'center',
+                    font: {
+                        weight: 'bold',
+                        size: 12,
+                    },
+                    formatter: (value, context) => {
+                        if (value < 5) return null;
+                        
+                        const formatCurrency = (val) => new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
+                        let outcomeText = '';
+                        const drawdownYears = state.retirementAge - state.currentAge;
+                        
+                        let label = context.chart.data.labels[context.dataIndex];
+                        
+                        switch(context.dataIndex) {
+                            case 0: // Savings
+                                const savingsValue = (state.savings / 100) * state.totalFund;
+                                const savingsIncome = drawdownYears > 0 ? (savingsValue / drawdownYears) : 0;
+                                outcomeText = `${formatCurrency(savingsIncome)} p.a.`;
+                                break;
+                            case 1: // Certainty
+                                const certaintyValue = (state.certainty / 100) * state.totalFund;
+                                outcomeText = `${formatCurrency(certaintyValue * config.annuityRate)} p.a.`;
+                                break;
+                            case 2: // Emergency
+                                const emergencyValue = (state.emergency / 100) * state.totalFund;
+                                outcomeText = formatCurrency(emergencyValue);
+                                break;
+                        }
+                        return `${label}\n${outcomeText}`;
+                    }
+                }
+            }
+        }
+    });
+
+    // --- Update Functions ---
+    function updateUI() {
+        isProgrammaticChange = true;
+        
+        const formatCurrency = (val) => new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
+        const drawdownYears = state.retirementAge - state.currentAge;
+
+        // Update sliders
+        elements.sliders.savings.value = state.savings;
+        elements.sliders.certainty.value = state.certainty;
+        const emergencyAmount = (state.emergency / 100) * state.totalFund;
+        elements.sliders.emergency.max = state.totalFund;
+        elements.sliders.emergency.value = emergencyAmount;
+
+        // Update value outputs
+        const savingsIncome = drawdownYears > 0 ? ((state.savings / 100) * state.totalFund) / drawdownYears : 0;
+        elements.values.savings.textContent = `${formatCurrency(savingsIncome)} p.a.`;
+        
+        const certaintyIncome = ((state.certainty / 100) * state.totalFund) * config.annuityRate;
+        elements.values.certainty.textContent = `${formatCurrency(certaintyIncome)} p.a.`;
+
+        elements.values.emergency.textContent = formatCurrency(emergencyAmount);
+
+        // Update input fields from state
+        for (const key in elements.inputs) {
+            elements.inputs[key].value = state[key];
+        }
+
+        // Update subtitles and dynamic text
+        elements.subtitles.savings.textContent = `a flexible pot you can access up to age ${state.retirementAge}`;
+        elements.subtitles.certainty.textContent = `to give you a guaranteed monthly income from age ${state.retirementAge} for the rest of your life`;
+        elements.dynamicAgeSpans.forEach(span => span.textContent = state.retirementAge);
+
+        // Update chart
+        pensionPieChart.data.datasets[0].data = [state.savings, state.certainty, state.emergency];
+        pensionPieChart.update();
+
+        setTimeout(() => { isProgrammaticChange = false; }, 50);
+    }
+    
+    // --- Core Logic for Pot Adjustments ---
+    function handleSliderChange(pot, newValue) {
+        if (pot === 'emergency') {
+            const newEmergencyAmount = newValue;
+            if (state.totalFund > 0) {
+                 state.emergency = (newEmergencyAmount / state.totalFund) * 100;
+            } else {
+                 state.emergency = 0;
+            }
+            const remainingPercent = 100 - state.emergency;
+            const otherPotsTotal = state.savings + state.certainty;
+            if (otherPotsTotal > 0) {
+                const savingsRatio = state.savings / otherPotsTotal;
+                state.savings = remainingPercent * savingsRatio;
+                state.certainty = remainingPercent * (1 - savingsRatio);
+            } else {
+                state.savings = remainingPercent / 2;
+                state.certainty = remainingPercent / 2;
+            }
+        } else {
+            const delta = newValue - state[pot];
+            state[pot] = newValue;
+            let otherPots = ['savings', 'certainty', 'emergency'].filter(p => p !== pot);
+            const adjustmentMode = document.querySelector('input[name="adjustmentMode"]:checked').value;
+
+            if (adjustmentMode === 'even') {
+                distributeChangeEvenly(delta, otherPots);
+            } else { 
+                const potToAdjust = elements.logic.specificSelect.value;
+                if (otherPots.includes(potToAdjust)) {
+                    state[potToAdjust] -= delta;
+                } else {
+                    distributeChangeEvenly(delta, otherPots);
+                }
+            }
+        }
+        normalizeAndClampState();
+        updateUI();
+    }
+
+    function distributeChangeEvenly(delta, otherPots) {
+        let pot1 = otherPots[0], pot2 = otherPots[1];
+        let sumOfOthers = state[pot1] + state[pot2];
+        if (sumOfOthers > 0) {
+            state[pot1] -= delta * (state[pot1] / sumOfOthers);
+            state[pot2] -= delta * (state[pot2] / sumOfOthers);
+        } else {
+            state[pot1] -= delta / 2;
+            state[pot2] -= delta / 2;
+        }
+    }
+
+    window.adjustPot = function(pot, amount) {
+        if (pot === 'emergency') {
+            const currentAmount = (state.emergency / 100) * state.totalFund;
+            const newAmount = currentAmount + (amount * 500);
+            handleSliderChange('emergency', newAmount);
+        } else {
+            const newPercentage = state[pot] + amount;
+            handleSliderChange(pot, newPercentage);
+        }
+    }
+    
+    function normalizeAndClampState() {
+        ['savings', 'certainty', 'emergency'].forEach(pot => {
+             state[pot] = Math.max(0, Math.min(100, state[pot]));
+        });
+        const total = state.savings + state.certainty + state.emergency;
+        if (Math.abs(100 - total) > 0.001) {
+            const diff = 100 - total;
+            let maxPot = ['savings', 'certainty'].reduce((a, b) => state[a] > state[b] ? a : b);
+            state[maxPot] += diff;
+        }
+    }
+    
+    function populateSpecificPotSelect(excludePot) {
+        const currentSelection = elements.logic.specificSelect.value;
+        elements.logic.specificSelect.innerHTML = '';
+        ['savings', 'certainty', 'emergency'].filter(p => p !== excludePot).forEach(potName => {
+            const option = document.createElement('option');
+            option.value = potName;
+            option.textContent = potDisplayNames[potName];
+            elements.logic.specificSelect.appendChild(option);
+        });
+        if (Array.from(elements.logic.specificSelect.options).some(opt => opt.value === currentSelection)) {
+            elements.logic.specificSelect.value = currentSelection;
+        }
+    }
+
+    function balanceIncomes() {
+        const totalCAndS = 100 - state.emergency;
+        if (totalCAndS <= 0) {
+            showModal("Cannot balance with 0% allocated to the Flex and Fix pots combined.");
+            return;
+        }
+        const drawdownYears = state.retirementAge - state.currentAge;
+        if (drawdownYears <= 0) {
+            showModal("Retirement age must be greater than current age to calculate savings income.");
+            return;
+        }
+        const { annuityRate } = config;
+        const newSavings = totalCAndS / (1 + (1 / (drawdownYears * annuityRate)));
+        state.savings = newSavings;
+        state.certainty = totalCAndS - newSavings;
+        normalizeAndClampState();
+        updateUI();
+    }
+    
+    function resetState() {
+        const userDetails = {
+            totalFund: state.totalFund || config.defaults.totalFund,
+            currentAge: state.currentAge || config.defaults.currentAge,
+            postcode: state.postcode || config.defaults.postcode,
+            retirementAge: state.retirementAge || config.defaults.retirementAge
+        };
+        
+        const defaultEmergencyAmount = Math.min(0.15 * userDetails.totalFund, 10000);
+        const emergencyPercent = userDetails.totalFund > 0 ? (defaultEmergencyAmount / userDetails.totalFund) * 100 : 0;
+        const remainingPercent = 100 - emergencyPercent;
+        
+        state = {
+            ...userDetails,
+            emergency: emergencyPercent,
+            savings: remainingPercent / 2,
+            certainty: remainingPercent / 2
+        };
+        updateUI();
+    }
+
+    // --- Event Listeners ---
+    Object.values(elements.sliders).forEach(slider => {
+        slider.addEventListener('input', (e) => {
+            if (isProgrammaticChange) return;
+            handleSliderChange(e.target.id.replace('Slider', ''), parseFloat(e.target.value));
+        });
+        slider.addEventListener('focus', (e) => {
+            populateSpecificPotSelect(e.target.id.replace('Slider', ''));
+        });
+    });
+    
+    for (const key in elements.inputs) {
+        elements.inputs[key].addEventListener('change', (e) => {
+            const value = e.target.type === 'number' ? parseFloat(e.target.value) : e.target.value;
+            const min = e.target.min ? parseFloat(e.target.min) : -Infinity;
+            const max = e.target.max ? parseFloat(e.target.max) : Infinity;
+
+            if (!isNaN(value) && value >= min && value <= max) {
+                 state[key] = value;
+            } else {
+                 e.target.value = state[key];
+            }
+            
+            if (key === 'totalFund') {
+                resetState();
+            } else {
+                updateUI();
+            }
+        });
+    }
+
+    elements.ageButtons.increment.addEventListener('click', () => {
+        const max = parseInt(elements.inputs.retirementAge.max, 10);
+        if (state.retirementAge < max) {
+            state.retirementAge++;
+            updateUI();
+        }
+    });
+
+    elements.ageButtons.decrement.addEventListener('click', () => {
+        const min = parseInt(elements.inputs.retirementAge.min, 10);
+        if (state.retirementAge > min) {
+            state.retirementAge--;
+            updateUI();
+        }
+    });
+
+    elements.logic.mode.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            elements.logic.specificSelect.disabled = (e.target.value === 'even');
+        });
+    });
+
+    elements.resetBtn.addEventListener('click', resetState);
+    elements.detailsBtn.addEventListener('click', () => {
+        showModal('This would navigate to a page with more granular detail about your pension options, assumptions, and projections.');
+    });
+    elements.balanceBtn.addEventListener('click', balanceIncomes);
+    elements.modal.closeBtn.addEventListener('click', () => {
+        elements.modal.overlay.style.display = 'none';
+    });
+    window.addEventListener('click', (e) => {
+        if (e.target === elements.modal.overlay) {
+            elements.modal.overlay.style.display = 'none';
+        }
+    });
+
+    // --- Initialisation ---
+    populateSpecificPotSelect('savings');
+    resetState();
+});
+</script>
+
+</body>
+</html>
